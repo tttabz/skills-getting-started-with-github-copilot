@@ -31,9 +31,34 @@ document.addEventListener("DOMContentLoaded", () => {
         const participants = details.participants || [];
         const spotsLeft = details.max_participants - participants.length;
 
+        // Render participants as a list with delete icons, no bullets
         const participantsHtml = participants.length
-          ? `<ul class="participant-list">${participants.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`
+          ? `<div class="participant-list">${participants.map(p => `
+              <span class="participant-item">${escapeHtml(p)} <span class="delete-participant" title="Remove" data-activity="${escapeHtml(name)}" data-email="${escapeHtml(p)}">&#128465;</span></span>
+            `).join("")}</div>`
           : `<p class="info">No participants yet</p>`;
+      // Add event listeners for delete icons after rendering
+      activitiesList.querySelectorAll(".delete-participant").forEach(icon => {
+        icon.addEventListener("click", async (e) => {
+          const activity = icon.getAttribute("data-activity");
+          const email = icon.getAttribute("data-email");
+          if (!activity || !email) return;
+          if (!confirm(`Remove ${email} from ${activity}?`)) return;
+          try {
+            const response = await fetch(`/activities/${encodeURIComponent(activity)}/participants/${encodeURIComponent(email)}`, {
+              method: "DELETE",
+            });
+            const result = await response.json();
+            if (response.ok) {
+              fetchActivities();
+            } else {
+              alert(result.detail || "Failed to remove participant.");
+            }
+          } catch (err) {
+            alert("Failed to remove participant.");
+          }
+        });
+      });
 
         activityCard.innerHTML = `
           <h4>${escapeHtml(name)}</h4>
